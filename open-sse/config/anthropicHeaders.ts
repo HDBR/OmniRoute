@@ -227,6 +227,14 @@ export function syncSkillsBeta(
  * afk-mode-2026-01-31 is the second beta Claude Code attaches while auto mode is
  * active (captured on the wire in #14186). Dropping it strips the auto-mode
  * negotiation the upstream expects next to the classifier pair.
+ *
+ * per-turn-control-2026-07-01 authorizes per-message effort: Claude Code only
+ * attaches `output_config` to the `role:"system"` messages it keeps inside
+ * `messages[]` when it negotiated this beta (and strips the field itself when it
+ * did not). On the Opus/Fable agent path selectBetaFlags already emits
+ * mid-conversation-system and the message-level field survives (#10457), so
+ * dropping only this beta left the upstream with a field it was not asked to act
+ * on: `400 messages.N.output_config: Extra inputs are not permitted` (#14747).
  */
 export const FORWARDABLE_CLIENT_BETAS = Object.freeze([
   "tool-search-tool-2025-10-19",
@@ -244,6 +252,7 @@ export const FORWARDABLE_CLIENT_BETAS = Object.freeze([
   "thinking-display-updates-2026-08-18",
   "dangerous-tool-use-2026-09-03",
   "afk-mode-2026-01-31",
+  "per-turn-control-2026-07-01",
 ]);
 
 /**

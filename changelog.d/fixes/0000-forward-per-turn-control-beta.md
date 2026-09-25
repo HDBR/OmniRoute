@@ -1,0 +1,1 @@
+- **fix(sse):** Forward the `per-turn-control-2026-07-01` beta Claude Code negotiates for per-message effort, so Opus/Fable agent turns that keep `output_config` on mid-conversation `role:"system"` messages no longer fail with `400 messages.N.output_config: Extra inputs are not permitted` (#14747, #14746).
