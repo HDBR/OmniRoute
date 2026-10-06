@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import {
-  Card,
-  CardSkeleton,
-  Badge,
-  Button,
-  CollapsibleSection,
-  ProviderCardGrid,
-} from "@/shared/components";
+import { Card, CardSkeleton, Button, ProviderCardGrid } from "@/shared/components";
 import {
   AGGREGATOR_PROVIDER_IDS,
   EMBEDDING_RERANK_PROVIDER_IDS,
