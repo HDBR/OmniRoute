@@ -28,8 +28,28 @@ test("provider connection actions fill the row width and wrap on mobile", () => 
   );
   assert.match(
     source,
-    /className="!size-7 !p-0 text-xs"/,
+    /className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs"/,
     "labeled actions must collapse to the same icon-only square on narrow rows"
+  );
+  // PR #15532 review: the collapse is phone-only — from `sm` up the labeled actions
+  // keep their visible text (Retest, Token, Apply/Export Codex/Claude auth).
+  for (const label of [
+    't("retest")',
+    't("tokenShort")',
+    "applyCodexAuthLabel",
+    "exportCodexAuthLabel",
+    "applyClaudeAuthLabel",
+    "exportClaudeAuthLabel",
+  ]) {
+    assert.ok(
+      source.includes(`<span className="hidden sm:inline">{${label}}</span>`),
+      `the ${label} action must show its text label from the sm breakpoint up`
+    );
+  }
+  assert.doesNotMatch(
+    source,
+    /className="!size-7 !p-0 text-xs[^"]*"/,
+    "no labeled action may stay icon-only on desktop widths"
   );
   assert.match(
     source,

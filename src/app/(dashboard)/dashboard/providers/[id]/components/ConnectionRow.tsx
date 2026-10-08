@@ -718,7 +718,7 @@ export default function ConnectionRow({
             )}
             {isCodex && connection.provider === "codex" && onToggleCodexPaidCredits && (
               <>
-                <span className="text-text-muted/30 select-none">|</span>
+                <span className="hidden text-text-muted/30 select-none sm:inline">|</span>
                 <button
                   onClick={() => onToggleCodexPaidCredits(!codexPaidCreditsEnabled)}
                   className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-all cursor-pointer ${
@@ -912,10 +912,12 @@ export default function ConnectionRow({
             loading={isRetesting}
             disabled={connection.isActive === false}
             onClick={onRetest}
-            className="!size-7 !p-0 text-xs"
+            className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs"
             aria-label={t("retest")}
             title={t("retestAuthentication")}
-          />
+          >
+            <span className="hidden sm:inline">{t("retest")}</span>
+          </Button>
           {/* T12: Manual token refresh for OAuth accounts */}
           {onRefreshToken && (
             <Button
@@ -925,10 +927,12 @@ export default function ConnectionRow({
               loading={isRefreshing}
               disabled={connection.isActive === false || isRefreshing}
               onClick={onRefreshToken}
-              className="!size-7 !p-0 text-xs text-amber-500 hover:text-amber-400"
+              className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs text-amber-500 hover:text-amber-400"
               aria-label={t("tokenShort")}
               title={t("refreshOauthTokenTitle")}
-            />
+            >
+              <span className="hidden sm:inline">{t("tokenShort")}</span>
+            </Button>
           )}
           {isCodex && onApplyCodexAuthLocal && (
             <Button
@@ -938,10 +942,12 @@ export default function ConnectionRow({
               loading={isApplyingCodexAuthLocal}
               disabled={isApplyingCodexAuthLocal}
               onClick={onApplyCodexAuthLocal}
-              className="!size-7 !p-0 text-xs text-emerald-500 hover:text-emerald-400"
+              className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs text-emerald-500 hover:text-emerald-400"
               aria-label={applyCodexAuthLabel}
               title={applyCodexAuthLabel}
-            />
+            >
+              <span className="hidden sm:inline">{applyCodexAuthLabel}</span>
+            </Button>
           )}
           {isCodex && onExportCodexAuthFile && (
             <Button
@@ -951,10 +957,12 @@ export default function ConnectionRow({
               loading={isExportingCodexAuthFile}
               disabled={isExportingCodexAuthFile}
               onClick={onExportCodexAuthFile}
-              className="!size-7 !p-0 text-xs text-sky-500 hover:text-sky-400"
+              className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs text-sky-500 hover:text-sky-400"
               aria-label={exportCodexAuthLabel}
               title={exportCodexAuthLabel}
-            />
+            >
+              <span className="hidden sm:inline">{exportCodexAuthLabel}</span>
+            </Button>
           )}
           {isClaude && onApplyClaudeAuthLocal && (
             <Button
@@ -964,10 +972,12 @@ export default function ConnectionRow({
               loading={isApplyingClaudeAuthLocal}
               disabled={isApplyingClaudeAuthLocal}
               onClick={onApplyClaudeAuthLocal}
-              className="!size-7 !p-0 text-xs text-emerald-500 hover:text-emerald-400"
+              className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs text-emerald-500 hover:text-emerald-400"
               aria-label={applyClaudeAuthLabel}
               title={applyClaudeAuthLabel}
-            />
+            >
+              <span className="hidden sm:inline">{applyClaudeAuthLabel}</span>
+            </Button>
           )}
           {isClaude && onExportClaudeAuthFile && (
             <Button
@@ -977,10 +987,12 @@ export default function ConnectionRow({
               loading={isExportingClaudeAuthFile}
               disabled={isExportingClaudeAuthFile}
               onClick={onExportClaudeAuthFile}
-              className="!size-7 !p-0 text-xs text-sky-500 hover:text-sky-400"
+              className="!size-7 !p-0 sm:!w-auto sm:!px-2 text-xs text-sky-500 hover:text-sky-400"
               aria-label={exportClaudeAuthLabel}
               title={exportClaudeAuthLabel}
-            />
+            >
+              <span className="hidden sm:inline">{exportClaudeAuthLabel}</span>
+            </Button>
           )}
           <Toggle
             size="sm"
@@ -1028,13 +1040,15 @@ export default function ConnectionRow({
         </div>
       ) : null}
       {quotaPanelSupported ? (
-        <ConnectionQuotaPanel
-          providerId={String(connection.provider || "")}
-          connection={connection}
-          cache={quotaCache}
-          refreshing={quotaRefreshing}
-          onRefresh={onRefreshQuota}
-        />
+        <div className="basis-full min-w-0">
+          <ConnectionQuotaPanel
+            providerId={String(connection.provider || "")}
+            connection={connection}
+            cache={quotaCache}
+            refreshing={quotaRefreshing}
+            onRefresh={onRefreshQuota}
+          />
+        </div>
       ) : null}
     </div>
   );

@@ -421,7 +421,11 @@ body.electron-macos {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    main .flex:not(.flex-col):has(> :is(h1, h2):first-child, > div:first-child > :is(h1, h2):first-child) {
+    main
+      .flex:not(.flex-col):has(
+        > :is(h1, h2):first-child,
+        > div:first-child > :is(h1, h2):first-child
+      ) {
       flex-wrap: wrap;
     }
     main .flex:not(.flex-col) > :is(h1, h2):first-child,
