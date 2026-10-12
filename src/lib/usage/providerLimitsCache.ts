@@ -44,6 +44,22 @@ export function mergeProviderLimitsCacheEntry(
 ): ProviderLimitsCacheEntry {
   if (!previous) return next;
 
+  // Claude's usage endpoint can fail while a real inference response still carries
+  // the quota in its unified headers. An empty {} is not a successful observation:
+  // preserve the last readable windows and their observation time across that poll.
+  if (provider === "claude" && hasUsableCachedData(previous)) {
+    const noWindows =
+      !Object.keys(next.quotas ?? {}).length && !Object.keys(next.modelQuotas ?? {}).length;
+    if (noWindows) return previous;
+    if (
+      next.source === "response-headers" &&
+      previous.source === "response-headers" &&
+      next.fetchedAt === previous.fetchedAt
+    ) {
+      return previous;
+    }
+  }
+
   if (!next.quotas && next.message && hasUsableCachedData(previous)) {
     return previous;
   }

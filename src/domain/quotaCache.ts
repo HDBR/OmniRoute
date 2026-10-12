@@ -49,6 +49,7 @@ import {
 import { readClaudeUsageLimitConfig } from "@omniroute/open-sse/services/claudeLowPriority.ts";
 import { setClaudeHeaderUsageSink } from "@omniroute/open-sse/services/usage/claudeHeaderQuota.ts";
 import { normalizeClaudeUsageQuotas } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
+import { getProviderLimitsCache, setProviderLimitsCache } from "@/lib/db/providerLimits";
 import type { ClaudeQuotaMetadata } from "@omniroute/open-sse/services/usage/quota.ts";
 import {
   EXHAUSTED_MAX_PARK_MS,
@@ -735,7 +736,24 @@ setClaudeHeaderUsageSink((connectionId, usage) => {
   const { quotas, modelQuotas } = normalizeClaudeUsageQuotas(
     usage as unknown as Record<string, unknown>
   );
-  if (Object.keys(quotas).length > 0) setQuotaCache(connectionId, "claude", quotas, modelQuotas);
+  if (Object.keys(quotas).length === 0) return;
+  setQuotaCache(connectionId, "claude", quotas, modelQuotas);
+
+  // The dashboard reads providerLimitsCache from SQLite, not quota_snapshots. Preserve
+  // the real observation time and keep unrelated plan/billing fields from a prior poll.
+  const previous = getProviderLimitsCache(connectionId);
+  setProviderLimitsCache(connectionId, {
+    quotas,
+    modelQuotas,
+    plan: previous?.plan ?? null,
+    message: null,
+    fetchedAt: new Date(usage.observedAt).toISOString(),
+    source: "response-headers",
+    ...(previous?.billing ? { billing: previous.billing } : {}),
+    ...(previous?.bankedResetCredits !== undefined
+      ? { bankedResetCredits: previous.bankedResetCredits }
+      : {}),
+  });
 });
 
 /**

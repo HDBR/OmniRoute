@@ -889,7 +889,7 @@ async function fetchLiveProviderLimitsWithOptions(
     );
     if (data) connection = { ...connection, providerSpecificData: data };
   }
-  if (isRecord(result.usage.quotas)) {
+  if (isRecord(result.usage.quotas) && Object.keys(result.usage.quotas).length > 0) {
     setQuotaCache(
       connectionId,
       connection.provider,
@@ -909,10 +909,12 @@ async function fetchLiveProviderLimitsWithOptions(
             ...result.usage,
             quotas: normalized.quotas,
             modelQuotas: normalized.modelQuotas,
+            message: null,
             quotaSource: "response-headers",
             quotaObservedAt: new Date(fromHeaders.observedAt).toISOString(),
           },
         };
+        setQuotaCache(connectionId, "claude", normalized.quotas, normalized.modelQuotas);
       }
     }
   }
@@ -942,6 +944,10 @@ export async function fetchAndPersistProviderLimits(
     allowRotatingRefresh: opts.allowRotatingRefresh,
   });
   const newCache = toProviderLimitsCacheEntry(usage, source);
+  if (usage.quotaSource === "response-headers" && typeof usage.quotaObservedAt === "string") {
+    newCache.source = "response-headers";
+    newCache.fetchedAt = usage.quotaObservedAt;
+  }
   const previous = getProviderLimitsCache(connectionId);
   const cache = mergeProviderLimitsCacheEntry(connection.provider, newCache, previous);
 
@@ -1020,6 +1026,10 @@ export async function syncAllProviderLimits(
       forceRefresh,
     });
     const nextCache = toProviderLimitsCacheEntry(usage, source);
+    if (usage.quotaSource === "response-headers" && typeof usage.quotaObservedAt === "string") {
+      nextCache.source = "response-headers";
+      nextCache.fetchedAt = usage.quotaObservedAt;
+    }
     const cache = mergeProviderLimitsCacheEntry(connection.provider, nextCache, existingCache);
     return { connectionId: connection.id, cache };
   };
