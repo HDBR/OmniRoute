@@ -3,13 +3,13 @@ import { EXPIRED_REPROBE_BLOCKLIST } from "@/lib/quota/connectionRecovery";
 
 export const EXPLICIT_PROBE_BLOCKLIST = EXPIRED_REPROBE_BLOCKLIST;
 
+// Only states an AUTOMATIC disable leaves behind. A connection an operator switched off keeps
+// its healthy testStatus ("active"/"success"/empty); probing it from a pinned combo step every
+// 60 s re-enabled it on the first success, undoing the operator (seen in production 12/10/2026).
 export const RECOVERABLE_INACTIVE_TEST_STATUSES = new Set([
-  "active",
-  "success",
   "credits_exhausted",
   "unavailable",
   "error",
-  "",
 ]);
 
 export function isRecoverableInactiveConnection(

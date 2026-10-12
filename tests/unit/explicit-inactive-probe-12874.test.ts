@@ -39,8 +39,10 @@ test("P-14 EXPLICIT_PROBE_BLOCKLIST is the same object as EXPIRED_REPROBE_BLOCKL
   assert.equal(EXPLICIT_PROBE_BLOCKLIST, EXPIRED_REPROBE_BLOCKLIST);
 });
 
-test("P-1 pin + inactive active -> probe", () => {
-  assert.equal(select().kind, "probe");
+test("P-1 pin + inactive with healthy status (manual disable) -> skip", () => {
+  for (const testStatus of ["active", "success", ""]) {
+    assert.equal(select({ pinnedRow: { ...pin, testStatus } }).kind, "skip", testStatus);
+  }
 });
 test("P-2 credits_exhausted -> probe", () => {
   assert.equal(select({ pinnedRow: { ...pin, testStatus: "credits_exhausted" } }).kind, "probe");
