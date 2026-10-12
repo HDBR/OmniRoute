@@ -41,6 +41,7 @@ import {
 } from "../services/openrouterFreeWindow.ts";
 import { gateOutboundRequest } from "../services/wafRateLimit.ts";
 import { ClaudeUsageLimitGuard } from "./claudeUsageLimit.ts";
+import { observeClaudeUnifiedHeaders } from "../services/usage/claudeHeaderQuota.ts";
 import { shouldSkipIntraRetryFor429 } from "./rateLimitIntraRetry.ts";
 import type { PoolConfig } from "../services/sessionPool/types.ts";
 import type { Session } from "../services/sessionPool/session.ts";
@@ -1653,6 +1654,10 @@ export class BaseExecutor {
             }
           }
         }
+
+        // Claude subscription quota rides on every response's unified headers; recording it
+        // gives setup-token connections (no usage scope) the same 5h/weekly bars as OAuth.
+        observeClaudeUnifiedHeaders(this.provider, activeCredentials?.connectionId, response.headers);
 
         // Claude OAuth usage wall: accept the slow-lane offer / claim the weekly
         // session-limit reset and retry the SAME account instead of surfacing the 429

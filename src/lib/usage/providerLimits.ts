@@ -32,6 +32,8 @@ import {
   getStoredAntigravityProjectId,
 } from "@omniroute/open-sse/services/antigravityProjectPersistence.ts";
 import { runWithProxyContext } from "@omniroute/open-sse/utils/proxyFetch.ts";
+import { getClaudeHeaderUsage } from "@omniroute/open-sse/services/usage/claudeHeaderQuota.ts";
+import { normalizeClaudeUsageQuotas } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
 import { onUsageRecorded } from "./usageEvents";
 import {
   isRecord,
@@ -894,6 +896,25 @@ async function fetchLiveProviderLimitsWithOptions(
       result.usage.quotas,
       isRecord(result.usage.modelQuotas) ? result.usage.modelQuotas : {}
     );
+  } else if (connection.provider === "claude") {
+    // Inference-only token (claude setup-token): the usage API is closed to it, but the
+    // executor saw the same windows in the unified headers of a real response.
+    const fromHeaders = getClaudeHeaderUsage(connectionId);
+    if (fromHeaders) {
+      const normalized = normalizeClaudeUsageQuotas(fromHeaders as unknown as JsonRecord);
+      if (Object.keys(normalized.quotas).length > 0) {
+        result = {
+          ...result,
+          usage: {
+            ...result.usage,
+            quotas: normalized.quotas,
+            modelQuotas: normalized.modelQuotas,
+            quotaSource: "response-headers",
+            quotaObservedAt: new Date(fromHeaders.observedAt).toISOString(),
+          },
+        };
+      }
+    }
   }
   connection = await syncExpiredStatusIfNeeded(connection, result.usage);
   connection = await syncClaudeExtraUsageStateIfNeeded(connection, result.usage);

@@ -47,6 +47,8 @@ import {
   isClaudeQuotaMetadata,
 } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
 import { readClaudeUsageLimitConfig } from "@omniroute/open-sse/services/claudeLowPriority.ts";
+import { setClaudeHeaderUsageSink } from "@omniroute/open-sse/services/usage/claudeHeaderQuota.ts";
+import { normalizeClaudeUsageQuotas } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
 import type { ClaudeQuotaMetadata } from "@omniroute/open-sse/services/usage/quota.ts";
 import {
   EXHAUSTED_MAX_PARK_MS,
@@ -725,6 +727,16 @@ export function setQuotaCache(
     }
   }
 }
+
+// Quota read from the unified headers of real Claude responses (open-sse executor). The
+// normalizer is the one the /api/oauth/usage path uses, so setup-token connections get the
+// same windows, snapshots and routing decisions as full-scope OAuth ones (#10115).
+setClaudeHeaderUsageSink((connectionId, usage) => {
+  const { quotas, modelQuotas } = normalizeClaudeUsageQuotas(
+    usage as unknown as Record<string, unknown>
+  );
+  if (Object.keys(quotas).length > 0) setQuotaCache(connectionId, "claude", quotas, modelQuotas);
+});
 
 /**
  * Get cached quota entry (returns null if not cached).
