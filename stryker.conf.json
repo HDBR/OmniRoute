@@ -87,6 +87,7 @@
       "tests/unit/agy-quota-exhaustion-threshold.test.ts",
       "tests/unit/antigravity-429-quota-cooldown.test.ts",
       "tests/unit/antigravity-429-quota-tdd.test.ts",
+      "tests/unit/antigravity-429-safe-diagnostics.test.ts",
       "tests/unit/antigravity-prefer-stored-project.test.ts",
       "tests/unit/api-key-policy-noauth-allowed-connections.test.ts",
       "tests/unit/api-key-rotator-health.test.ts",

@@ -213,10 +213,6 @@ import {
   toPositiveInteger,
 } from "../services/reasoningTokenBuffer.ts";
 import {
-  attachAntigravity429Diagnostic,
-  getAntigravity429Diagnostic,
-} from "../executors/antigravity429Diagnostics.ts";
-import {
   buildErrorBody,
   createErrorResult,
   parseUpstreamError,
@@ -257,7 +253,10 @@ import { wasRefreshTokenRotated } from "@omniroute/open-sse/services/refreshSeri
 import { connectionHasExtraKeys } from "../services/apiKeyRotator.ts";
 import { recordKeyHealthStatus as recordKeyHealthStatusFor } from "./chatCore/keyHealth.ts";
 import { getSkillsModelIdForFormat } from "./chatCore/skillsFormat.ts";
-import { readNonStreamingResponseBody } from "./chatCore/nonStreamingResponseBody.ts";
+import {
+  readNonStreamingResponseBody,
+  recreateNonStreamingResponse,
+} from "./chatCore/nonStreamingResponseBody.ts";
 import {
   createSafeAbortError,
   createStreamingErrorResult,
@@ -3557,18 +3556,14 @@ async function handleChatCoreInner({
         if (stream) {
           return rawResult;
         }
-
         // Non-stream: release semaphore immediately after reading full response body.
         const status = rawResult.response.status;
-
         releaseRawResultAccountSemaphore =
           typeof rawResult._accountSemaphoreRelease === "function"
             ? rawResult._accountSemaphoreRelease
             : () => {};
 
-        const statusText = rawResult.response.statusText;
-        const headersObj = normalizeHeaders(rawResult.response.headers);
-        const responseHeaders = new Headers(headersObj);
+        const responseHeaders = new Headers(normalizeHeaders(rawResult.response.headers));
         stripStaleForwardingHeaders(responseHeaders);
         stripNextMiddlewareControlHeaders(responseHeaders);
         // The upstream headers (turn-state included) are about to be committed
@@ -3601,25 +3596,9 @@ async function handleChatCoreInner({
         }
         releaseRawResultAccountSemaphore();
         releaseRawResultAccountSemaphore = () => {};
-
-        const normalizedResponse = new Response(payload, { status, statusText, headers: responseHeaders });
-        attachAntigravity429Diagnostic(
-          normalizedResponse,
-          getAntigravity429Diagnostic(rawResult.response)
-        );
         return {
           ...rawResult,
-          response: normalizedResponse,
-          _dedupSnapshot: {
-            status,
-            statusText,
-            headers: (() => {
-              const arr: [string, string][] = [];
-              responseHeaders.forEach((v, k) => arr.push([k, v]));
-              return arr;
-            })(),
-            payload,
-          },
+          ...recreateNonStreamingResponse(rawResult.response, payload, responseHeaders),
         };
       } catch (error) {
         releaseRawResultAccountSemaphore();
