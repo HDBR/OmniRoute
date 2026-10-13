@@ -10,6 +10,7 @@
  * call sites in the handler stay byte-identical; behaviour is unchanged.
  */
 
+import { getAntigravity429Diagnostic } from "../../executors/antigravity429Diagnostics.ts";
 import { extractProviderWarnings } from "@/lib/compliance/providerAudit";
 import { logAuditEvent } from "@/lib/compliance";
 import { emit } from "@/lib/events/eventBus";
@@ -256,9 +257,7 @@ export type PersistAttemptLogsArgs = {
     encryptedSeen: boolean;
     durationMs: number | null;
   } | null;
-  diagnostic?: ReturnType<
-    typeof import("../../executors/antigravity429Diagnostics.ts").buildAntigravity429Diagnostic
-  >;
+  upstreamResponse?: Response;
 };
 
 export type PersistAttemptLogsContext = {
@@ -400,8 +399,9 @@ export function persistAttemptLogs(args: PersistAttemptLogsArgs, ctx: PersistAtt
     claudeCacheMeta,
     claudeCacheUsageMeta,
     cacheSource,
-    diagnostic,
+    upstreamResponse,
   } = args;
+  const diagnostic = upstreamResponse ? getAntigravity429Diagnostic(upstreamResponse) : null;
   const {
     traceId,
     provider,

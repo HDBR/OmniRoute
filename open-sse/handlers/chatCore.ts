@@ -211,7 +211,6 @@ import {
   isTinyBudgetReasoningProbe,
   toPositiveInteger,
 } from "../services/reasoningTokenBuffer.ts";
-import { getAntigravity429Diagnostic } from "../executors/antigravity429Diagnostics.ts";
 import {
   buildErrorBody,
   createErrorResult,
@@ -4751,6 +4750,9 @@ export async function handleChatCore({
         safeUpstreamErrorBody
       );
 
+      // Keep the failed attempt's response when a family fallback replaces providerResponse.
+      const originalErrorResponse = providerResponse;
+
       // ── T5: Intra-family model fallback ──────────────────────────────────────
       // Before returning a model-unavailable error upstream, try sibling models
       // from the same family. This keeps the request alive on the same account
@@ -4791,6 +4793,7 @@ export async function handleChatCore({
                 providerRequest: finalBody || translatedBody,
                 providerResponse: safeUpstreamErrorBody,
                 clientResponse: buildErrorBody(statusCode, errMsg),
+                upstreamResponse: originalErrorResponse,
                 cacheSource: "upstream",
               });
               persistFailureUsage(statusCode, "model_unavailable");
@@ -4811,6 +4814,7 @@ export async function handleChatCore({
               providerRequest: finalBody || translatedBody,
               providerResponse: safeUpstreamErrorBody,
               clientResponse: buildErrorBody(statusCode, errMsg),
+              upstreamResponse: originalErrorResponse,
               cacheSource: "upstream",
             });
             persistFailureUsage(statusCode, "model_unavailable");
@@ -4831,6 +4835,7 @@ export async function handleChatCore({
             providerRequest: finalBody || translatedBody,
             providerResponse: safeUpstreamErrorBody,
             clientResponse: buildErrorBody(statusCode, errMsg),
+            upstreamResponse: originalErrorResponse,
             cacheSource: "upstream",
           });
           persistFailureUsage(statusCode, "model_unavailable");
@@ -4883,6 +4888,7 @@ export async function handleChatCore({
                 providerRequest: finalBody || translatedBody,
                 providerResponse: safeUpstreamErrorBody,
                 clientResponse: buildErrorBody(statusCode, errMsg),
+                upstreamResponse: originalErrorResponse,
                 cacheSource: "upstream",
               });
               persistFailureUsage(statusCode, "context_overflow");
@@ -4903,6 +4909,7 @@ export async function handleChatCore({
               providerRequest: finalBody || translatedBody,
               providerResponse: safeUpstreamErrorBody,
               clientResponse: buildErrorBody(statusCode, errMsg),
+              upstreamResponse: originalErrorResponse,
               cacheSource: "upstream",
             });
             persistFailureUsage(statusCode, "context_overflow");
@@ -4923,6 +4930,7 @@ export async function handleChatCore({
             providerRequest: finalBody || translatedBody,
             providerResponse: safeUpstreamErrorBody,
             clientResponse: buildErrorBody(statusCode, errMsg),
+            upstreamResponse: originalErrorResponse,
             cacheSource: "upstream",
           });
           persistFailureUsage(statusCode, "context_overflow");
@@ -4943,7 +4951,7 @@ export async function handleChatCore({
           providerRequest: finalBody || translatedBody,
           providerResponse: safeUpstreamErrorBody,
           clientResponse: buildErrorBody(statusCode, errMsg),
-          diagnostic: getAntigravity429Diagnostic(providerResponse),
+          upstreamResponse: originalErrorResponse,
           cacheSource: "upstream",
         });
         persistFailureUsage(statusCode, `upstream_${statusCode}`);

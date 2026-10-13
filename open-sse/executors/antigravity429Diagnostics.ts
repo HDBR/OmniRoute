@@ -55,7 +55,9 @@ function upstreamCode(value: unknown): string | null {
   return typeof value === "string" && UPSTREAM_CODES.has(value) ? value : null;
 }
 
-export type Antigravity429Diagnostic = NonNullable<ReturnType<typeof buildAntigravity429Diagnostic>>;
+export type Antigravity429Diagnostic = NonNullable<
+  ReturnType<typeof buildAntigravity429Diagnostic>
+>;
 
 const diagnostics = new WeakMap<Response, Antigravity429Diagnostic>();
 
@@ -93,7 +95,9 @@ export function buildAntigravity429Diagnostic(input: DiagnosticInput) {
   return {
     httpStatus: 429,
     upstreamStatus: upstreamCode(detailError.status ?? error.status ?? upstream.status),
-    reason: upstreamCode(detailError.reason ?? error.reason ?? errorDetail.reason ?? upstream.reason),
+    reason: upstreamCode(
+      detailError.reason ?? error.reason ?? errorDetail.reason ?? upstream.reason
+    ),
     requestHeaderNames,
     responseHeaderNames,
     envelopeNames,

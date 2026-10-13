@@ -576,10 +576,12 @@ async function buildUpstreamErrorResult(
     .catch(() => "");
   const errorBody = buildAntigravityUpstreamError(response.status, response.statusText, rawBody);
   let upstreamBody: unknown = null;
-  try {
-    upstreamBody = JSON.parse(rawBody);
-  } catch {
-    // Non-JSON errors have no structured classification.
+  if (response.status === HTTP_STATUS.RATE_LIMITED && rawBody.length <= 64 * 1024) {
+    try {
+      upstreamBody = JSON.parse(rawBody);
+    } catch {
+      // Non-JSON errors have no structured classification.
+    }
   }
   const diagnostic = buildAntigravity429Diagnostic({
     status: response.status,
