@@ -211,6 +211,7 @@ import {
   isTinyBudgetReasoningProbe,
   toPositiveInteger,
 } from "../services/reasoningTokenBuffer.ts";
+import { getAntigravity429Diagnostic } from "../executors/antigravity429Diagnostics.ts";
 import {
   buildErrorBody,
   createErrorResult,
@@ -4942,6 +4943,7 @@ export async function handleChatCore({
           providerRequest: finalBody || translatedBody,
           providerResponse: safeUpstreamErrorBody,
           clientResponse: buildErrorBody(statusCode, errMsg),
+          diagnostic: getAntigravity429Diagnostic(providerResponse),
           cacheSource: "upstream",
         });
         persistFailureUsage(statusCode, `upstream_${statusCode}`);

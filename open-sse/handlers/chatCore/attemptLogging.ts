@@ -256,6 +256,9 @@ export type PersistAttemptLogsArgs = {
     encryptedSeen: boolean;
     durationMs: number | null;
   } | null;
+  diagnostic?: ReturnType<
+    typeof import("../../executors/antigravity429Diagnostics.ts").buildAntigravity429Diagnostic
+  >;
 };
 
 export type PersistAttemptLogsContext = {
@@ -397,6 +400,7 @@ export function persistAttemptLogs(args: PersistAttemptLogsArgs, ctx: PersistAtt
     claudeCacheMeta,
     claudeCacheUsageMeta,
     cacheSource,
+    diagnostic,
   } = args;
   const {
     traceId,
@@ -573,6 +577,7 @@ export function persistAttemptLogs(args: PersistAttemptLogsArgs, ctx: PersistAtt
     ),
     responseBody: cloneBoundedChatLogPayload(
       attachLogMeta(truncateForLog(retainedResponse as Record<string, unknown>), {
+        ...(diagnostic ? { antigravity429Diagnostic: diagnostic } : {}),
         ...accountRotationMeta,
         claudePromptCache: claudeCacheMeta
           ? {

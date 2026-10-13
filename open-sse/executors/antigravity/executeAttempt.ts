@@ -10,6 +10,10 @@ import { applyFingerprint, isCliCompatEnabled } from "../../config/cliFingerprin
 import { buildAntigravityUpstreamError } from "../antigravityUpstreamError.ts";
 import { maybeTriggerReactiveModelSync } from "@/lib/providerModels/reactiveModelSync.ts";
 import {
+  attachAntigravity429Diagnostic,
+  buildAntigravity429Diagnostic,
+} from "../antigravity429Diagnostics.ts";
+import {
   HTTP_STATUS,
   STREAM_READINESS_TIMEOUT_MS,
   ANTIGRAVITY_PRE_RESPONSE_TIMEOUT_CODE,
@@ -536,6 +540,17 @@ export async function tryEmbedLongRetryAfter(
       status: response.status,
       headers: response.headers,
     });
+    attachAntigravity429Diagnostic(
+      modifiedResponse,
+      buildAntigravity429Diagnostic({
+        status: response.status,
+        provider: "agy",
+        upstreamBody: obj,
+        requestHeaders: finalHeaders,
+        responseHeaders: response.headers,
+        envelope: transformedBody,
+      })
+    );
     return {
       response: modifiedResponse,
       url,
@@ -560,11 +575,28 @@ async function buildUpstreamErrorResult(
     .text()
     .catch(() => "");
   const errorBody = buildAntigravityUpstreamError(response.status, response.statusText, rawBody);
+  let upstreamBody: unknown = null;
+  try {
+    upstreamBody = JSON.parse(rawBody);
+  } catch {
+    // Non-JSON errors have no structured classification.
+  }
+  const diagnostic = buildAntigravity429Diagnostic({
+    status: response.status,
+    provider: "agy",
+    upstreamBody,
+    requestHeaders: finalHeaders,
+    responseHeaders: response.headers,
+    envelope: transformedBody,
+  });
   return {
-    response: new Response(JSON.stringify(errorBody), {
-      status: response.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+    response: attachAntigravity429Diagnostic(
+      new Response(JSON.stringify(errorBody), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+      diagnostic
+    ),
     url,
     headers: finalHeaders,
     transformedBody,
