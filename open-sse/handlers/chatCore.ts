@@ -212,6 +212,10 @@ import {
   toPositiveInteger,
 } from "../services/reasoningTokenBuffer.ts";
 import {
+  attachAntigravity429Diagnostic,
+  getAntigravity429Diagnostic,
+} from "../executors/antigravity429Diagnostics.ts";
+import {
   buildErrorBody,
   createErrorResult,
   parseUpstreamError,
@@ -3544,9 +3548,14 @@ export async function handleChatCore({
         releaseRawResultAccountSemaphore();
         releaseRawResultAccountSemaphore = () => {};
 
+        const normalizedResponse = new Response(payload, { status, statusText, headers: responseHeaders });
+        attachAntigravity429Diagnostic(
+          normalizedResponse,
+          getAntigravity429Diagnostic(rawResult.response)
+        );
         return {
           ...rawResult,
-          response: new Response(payload, { status, statusText, headers: responseHeaders }),
+          response: normalizedResponse,
           _dedupSnapshot: {
             status,
             statusText,
@@ -5163,6 +5172,7 @@ export async function handleChatCore({
           error: err.error || "Provider request failed",
           providerRequest: finalBody || translatedBody,
           providerResponse: isNetworkThrow ? undefined : err.response,
+          upstreamResponse: isNetworkThrow ? undefined : err.response,
           // On a client abort the client already disconnected before we got here, so this
           // body is what we WOULD have sent, not what was delivered. The dashboard reads
           // `clientResponse` as "what the client received", so logging it misleads —
