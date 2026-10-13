@@ -20,7 +20,8 @@ const { normalizeExecutorResult } =
   await import("../../open-sse/handlers/chatCore/upstreamTimeouts.ts");
 const { persistAttemptLogs } = await import("../../open-sse/handlers/chatCore/attemptLogging.ts");
 const coreDb = await import("../../src/lib/db/core.ts");
-const { getCallLogById, waitForCallLogSaves } = await import("../../src/lib/usage/callLogs.ts");
+const { getCallLogs, getCallLogById, waitForCallLogSaves } =
+  await import("../../src/lib/usage/callLogs.ts");
 
 before(async () => {
   await coreDb.ensureDbInitialized();
@@ -174,7 +175,9 @@ for (const stream of [false, true]) {
       logContext(id)
     );
     assert.equal(await waitForCallLogSaves(5000), true);
-    const row = await getCallLogById(id);
+    const rows = await getCallLogs({ correlationId: id, limit: 5 });
+    assert.equal(rows.length, 1);
+    const row = await getCallLogById(rows[0].id);
     assert.equal(row?.detailState, "ready");
     assert.deepEqual(
       (row?.responseBody as { _omniroute?: { antigravity429Diagnostic?: unknown } })?._omniroute
