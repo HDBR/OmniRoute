@@ -10,6 +10,10 @@ import { applyFingerprint, isCliCompatEnabled } from "../../config/cliFingerprin
 import { buildAntigravityUpstreamError } from "../antigravityUpstreamError.ts";
 import { maybeTriggerReactiveModelSync } from "@/lib/providerModels/reactiveModelSync.ts";
 import {
+  attachAntigravity429Diagnostic,
+  buildAntigravity429Diagnostic,
+} from "../antigravity429Diagnostics.ts";
+import {
   HTTP_STATUS,
   STREAM_READINESS_TIMEOUT_MS,
   ANTIGRAVITY_PRE_RESPONSE_TIMEOUT_CODE,
@@ -196,21 +200,6 @@ export function buildAntigravity429ErrorMessage(errorJson: unknown): string {
   return errorMessage;
 }
 
-function getChunkedOrFixedBody(bodyStr: string, stream: boolean): BodyInit {
-  if (stream) {
-    return new ReadableStream(
-      {
-        async start(controller) {
-          controller.enqueue(new TextEncoder().encode(bodyStr));
-          controller.close();
-        },
-      },
-      { highWaterMark: 16384 }
-    );
-  }
-  return bodyStr;
-}
-
 function cloneAntigravityRequestBody(body: unknown): unknown {
   if (!body || typeof body !== "object") {
     return body;
@@ -330,7 +319,7 @@ export async function sendAntigravityRequest(
   headers: Record<string, string>,
   transformedBody: Record<string, unknown>,
   credentials: AntigravityCredentials,
-  stream: boolean,
+  _stream: boolean,
   signal: AbortSignal | null | undefined,
   log: SafeAntigravityLog,
   retryAttempt: number,
@@ -363,11 +352,13 @@ export async function sendAntigravityRequest(
     "TELEMETRY",
     `[Antigravity] PhysicalSend - RequestId: ${correlationId ?? "none"}, URL: ${url}, Model: ${model}, PhysicalSend: ${physicalSendOrdinal}, RetryAttempt: ${retryAttempt}`
   );
+  // The Antigravity request payload is finite JSON even when the response is streamed.
+  // Keep the upload replayable instead of wrapping it in a one-shot ReadableStream; proxyFetch
+  // can then use its normal replay/fallback path without retaining a duplex upload stream.
   let response = await fetchAntigravityWithReadinessTimeout(url, {
     method: "POST",
     headers: finalHeaders,
-    body: getChunkedOrFixedBody(serializedRequest.bodyString, stream),
-    ...(stream ? { duplex: "half" } : {}),
+    body: serializedRequest.bodyString,
     signal,
   });
 
@@ -384,8 +375,7 @@ export async function sendAntigravityRequest(
     response = await fetchAntigravityWithReadinessTimeout(url, {
       method: "POST",
       headers: retryHeaders,
-      body: getChunkedOrFixedBody(serializedRequest.bodyString, stream),
-      ...(stream ? { duplex: "half" } : {}),
+      body: serializedRequest.bodyString,
       signal,
     });
     finalHeaders = retryHeaders;
@@ -455,8 +445,7 @@ export async function tryCreditsRetry(
     const creditsResp = await fetchAntigravityWithReadinessTimeout(url, {
       method: "POST",
       headers: finalCreditsHeaders,
-      body: getChunkedOrFixedBody(serializedCreditsRequest.bodyString, stream),
-      ...(stream ? { duplex: "half" } : {}),
+      body: serializedCreditsRequest.bodyString,
       signal,
     });
     if (creditsResp.ok || creditsResp.status !== HTTP_STATUS.RATE_LIMITED) {
@@ -536,6 +525,17 @@ export async function tryEmbedLongRetryAfter(
       status: response.status,
       headers: response.headers,
     });
+    attachAntigravity429Diagnostic(
+      modifiedResponse,
+      buildAntigravity429Diagnostic({
+        status: response.status,
+        provider: "agy",
+        upstreamBody: obj,
+        requestHeaders: finalHeaders,
+        responseHeaders: response.headers,
+        envelope: transformedBody,
+      })
+    );
     return {
       response: modifiedResponse,
       url,
@@ -560,11 +560,30 @@ async function buildUpstreamErrorResult(
     .text()
     .catch(() => "");
   const errorBody = buildAntigravityUpstreamError(response.status, response.statusText, rawBody);
+  let upstreamBody: unknown = null;
+  if (response.status === HTTP_STATUS.RATE_LIMITED && rawBody.length <= 64 * 1024) {
+    try {
+      upstreamBody = JSON.parse(rawBody);
+    } catch {
+      // Non-JSON errors have no structured classification.
+    }
+  }
+  const diagnostic = buildAntigravity429Diagnostic({
+    status: response.status,
+    provider: "agy",
+    upstreamBody,
+    requestHeaders: finalHeaders,
+    responseHeaders: response.headers,
+    envelope: transformedBody,
+  });
   return {
-    response: new Response(JSON.stringify(errorBody), {
-      status: response.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+    response: attachAntigravity429Diagnostic(
+      new Response(JSON.stringify(errorBody), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+      diagnostic
+    ),
     url,
     headers: finalHeaders,
     transformedBody,

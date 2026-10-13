@@ -8,6 +8,10 @@
  * timeout-bounded response.text(). Behaviour is byte-identical to the previous module-level function.
  */
 
+import {
+  getAntigravity429Diagnostic,
+  attachAntigravity429Diagnostic,
+} from "../../executors/antigravity429Diagnostics.ts";
 import { withBodyTimeout } from "../../utils/stream.ts";
 import { FETCH_BODY_TIMEOUT_MS } from "../../config/constants.ts";
 import { createBodyTimeoutError, readStreamChunkWithTimeout } from "./upstreamTimeouts.ts";
@@ -46,6 +50,26 @@ export const MAX_NONSTREAMING_RESPONSE_BYTES = (() => {
   const parsed = Number.parseInt(String(process.env.OMNIROUTE_MAX_NONSTREAMING_RESPONSE_BYTES), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_NONSTREAMING_RESPONSE_BYTES;
 })();
+
+export function recreateNonStreamingResponse(
+  original: Response,
+  payload: string,
+  headers: Headers
+) {
+  const { status, statusText } = original;
+  return {
+    response: attachAntigravity429Diagnostic(
+      new Response(payload, { status, statusText, headers }),
+      getAntigravity429Diagnostic(original)
+    ),
+    _dedupSnapshot: {
+      status,
+      statusText,
+      headers: Array.from(headers.entries()),
+      payload,
+    },
+  };
+}
 
 export async function readNonStreamingResponseBody(
   response: Response,

@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 @AGENTS.md
+@.specsfy/Spec.md
 
 **All project rules live in [`AGENTS.md`](AGENTS.md)** — the single source of truth for every AI
 assistant (architecture, conventions, testing, quality gates, git workflow, the 23 Hard Rules,
