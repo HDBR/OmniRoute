@@ -48,6 +48,9 @@ import {
   isClaudeQuotaMetadata,
 } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
 import { readClaudeUsageLimitConfig } from "@omniroute/open-sse/services/claudeLowPriority.ts";
+import { setClaudeHeaderUsageSink } from "@omniroute/open-sse/services/usage/claudeHeaderQuota.ts";
+import { normalizeClaudeUsageQuotas } from "@omniroute/open-sse/services/usage/claudeQuota.ts";
+import { getProviderLimitsCache, setProviderLimitsCache } from "@/lib/db/providerLimits";
 import type { ClaudeQuotaMetadata } from "@omniroute/open-sse/services/usage/quota.ts";
 import {
   EXHAUSTED_MAX_PARK_MS,
@@ -810,6 +813,33 @@ export function setQuotaCache(
     }
   }
 }
+
+// Quota read from the unified headers of real Claude responses (open-sse executor). The
+// normalizer is the one the /api/oauth/usage path uses, so setup-token connections get the
+// same windows, snapshots and routing decisions as full-scope OAuth ones (#10115).
+setClaudeHeaderUsageSink((connectionId, usage) => {
+  const { quotas, modelQuotas } = normalizeClaudeUsageQuotas(
+    usage as unknown as Record<string, unknown>
+  );
+  if (Object.keys(quotas).length === 0) return;
+  setQuotaCache(connectionId, "claude", quotas, modelQuotas);
+
+  // The dashboard reads providerLimitsCache from SQLite, not quota_snapshots. Preserve
+  // the real observation time and keep unrelated plan/billing fields from a prior poll.
+  const previous = getProviderLimitsCache(connectionId);
+  setProviderLimitsCache(connectionId, {
+    quotas,
+    modelQuotas,
+    plan: previous?.plan ?? null,
+    message: null,
+    fetchedAt: new Date(usage.observedAt).toISOString(),
+    source: "response-headers",
+    ...(previous?.billing ? { billing: previous.billing } : {}),
+    ...(previous?.bankedResetCredits !== undefined
+      ? { bankedResetCredits: previous.bankedResetCredits }
+      : {}),
+  });
+});
 
 /**
  * Get cached quota entry (returns null if not cached).

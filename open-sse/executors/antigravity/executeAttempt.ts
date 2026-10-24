@@ -6,6 +6,10 @@
 // (file-size cap), mirroring the existing antigravity/streamingPassthrough.ts and
 // antigravity/sseCollect.ts submodule pattern.
 import { mergeAbortSignals, type ExecutorLog } from "../base.ts";
+import {
+  attachAntigravity429Diagnostic,
+  buildAntigravity429Diagnostic,
+} from "../antigravity429Diagnostics.ts";
 import { applyFingerprint, isCliCompatEnabled } from "../../config/cliFingerprints.ts";
 import {
   buildAntigravityUpstreamError,
@@ -565,6 +569,17 @@ export async function tryEmbedLongRetryAfter(
       status: response.status,
       headers: response.headers,
     });
+    attachAntigravity429Diagnostic(
+      modifiedResponse,
+      buildAntigravity429Diagnostic({
+        status: response.status,
+        provider: "agy",
+        upstreamBody: obj,
+        requestHeaders: finalHeaders,
+        responseHeaders: response.headers,
+        envelope: transformedBody,
+      })
+    );
     return {
       response: modifiedResponse,
       url,
@@ -590,11 +605,30 @@ async function buildUpstreamErrorResult(
     .catch(() => "");
   const errorBody = buildAntigravityUpstreamError(response.status, response.statusText, rawBody);
   const upstreamDiagnostic = projectAntigravityValidationDiagnostic(response.status, rawBody);
+  let upstreamBody: unknown = null;
+  if (response.status === HTTP_STATUS.RATE_LIMITED && rawBody.length <= 64 * 1024) {
+    try {
+      upstreamBody = JSON.parse(rawBody);
+    } catch {
+      /* Unstructured errors carry no classified code. */
+    }
+  }
+  const diagnostic = buildAntigravity429Diagnostic({
+    status: response.status,
+    provider: "agy",
+    upstreamBody,
+    requestHeaders: finalHeaders,
+    responseHeaders: response.headers,
+    envelope: transformedBody,
+  });
   return {
-    response: new Response(JSON.stringify(errorBody), {
-      status: response.status,
-      headers: { "Content-Type": "application/json" },
-    }),
+    response: attachAntigravity429Diagnostic(
+      new Response(JSON.stringify(errorBody), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      }),
+      diagnostic
+    ),
     url,
     headers: finalHeaders,
     transformedBody,
