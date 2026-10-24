@@ -1002,6 +1002,8 @@ export async function runStreamingResponse(deps: StreamingDeps) {
       (upstreamDiagnostic = relogFallbackDiagnostic(reqLogger, provider, diagnostic));
     // Rate limiter updated in applyProviderFailureClassification
 
+    const originalErrorResponse = providerResponse;
+
     // ── T5: Intra-family model fallback ──────────────────────────────────────
     // Before returning a model-unavailable error upstream, try sibling models
     // from the same family. This keeps the request alive on the same account
@@ -1039,6 +1041,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
               error: safeErrMsg,
               providerRequest: finalBody || translatedBody,
               providerResponse: persistedProviderErrorBody,
+              upstreamResponse: originalErrorResponse,
               clientResponse: buildErrorBody(statusCode, errMsg),
               cacheSource: "upstream",
             });
@@ -1071,6 +1074,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
             error: safeErrMsg,
             providerRequest: finalBody || translatedBody,
             providerResponse: persistedProviderErrorBody,
+            upstreamResponse: originalErrorResponse,
             clientResponse: buildErrorBody(statusCode, errMsg),
             cacheSource: "upstream",
           });
@@ -1103,6 +1107,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
           error: safeErrMsg,
           providerRequest: finalBody || translatedBody,
           providerResponse: persistedProviderErrorBody,
+          upstreamResponse: originalErrorResponse,
           clientResponse: buildErrorBody(statusCode, errMsg),
           cacheSource: "upstream",
         });
@@ -1160,6 +1165,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
               error: safeErrMsg,
               providerRequest: finalBody || translatedBody,
               providerResponse: persistedProviderErrorBody,
+              upstreamResponse: originalErrorResponse,
               clientResponse: buildErrorBody(statusCode, errMsg),
               cacheSource: "upstream",
             });
@@ -1192,6 +1198,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
             error: safeErrMsg,
             providerRequest: finalBody || translatedBody,
             providerResponse: persistedProviderErrorBody,
+            upstreamResponse: originalErrorResponse,
             clientResponse: buildErrorBody(statusCode, errMsg),
             cacheSource: "upstream",
           });
@@ -1224,6 +1231,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
           error: safeErrMsg,
           providerRequest: finalBody || translatedBody,
           providerResponse: persistedProviderErrorBody,
+          upstreamResponse: originalErrorResponse,
           clientResponse: buildErrorBody(statusCode, errMsg),
           cacheSource: "upstream",
         });
@@ -1256,6 +1264,7 @@ export async function runStreamingResponse(deps: StreamingDeps) {
         error: safeErrMsg,
         providerRequest: finalBody || translatedBody,
         providerResponse: persistedProviderErrorBody,
+        upstreamResponse: originalErrorResponse,
         clientResponse: buildErrorBody(statusCode, errMsg),
         cacheSource: "upstream",
       });
